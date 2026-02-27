@@ -1072,7 +1072,7 @@ const VisitsList = ({ profile, onNewVisit, onSelectVisit }: { profile: User | nu
 };
 
 const VisitForm = ({ onBack, onSuccess, profile }: { onBack: () => void, onSuccess: () => void, profile: User | null }) => {
-  const [clientType, setClientType] = useState<ClientType>('POSTO');
+  const [clientType, setClientType] = useState<ClientType | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [formData, setFormData] = useState({
     client_name: '',
@@ -1150,7 +1150,7 @@ const VisitForm = ({ onBack, onSuccess, profile }: { onBack: () => void, onSucce
       data_visita: formData.date,
       tipo_cliente: clientType === 'TRR_CONSUMIDOR' ? 'trr' :
         clientType === 'FROTA' ? 'transporte' :
-          clientType.toLowerCase(),
+          clientType?.toLowerCase() || 'outro',
       tipo_visita: formData.type.toLowerCase(),
       objetivo_resultado: formData.result.toLowerCase(),
       resumo: formData.summary,
@@ -1166,6 +1166,23 @@ const VisitForm = ({ onBack, onSuccess, profile }: { onBack: () => void, onSucce
     if (!error) onSuccess();
     else console.error('Error saving visit:', error);
   };
+
+  const calculateProgress = () => {
+    let score = 0;
+    if (formData.client_name.length > 2) score += 20;
+    if (formData.cnpj.length > 8) score += 10;
+    if (clientType) score += 20;
+
+    const detailsCount = Object.keys(formData.details).length;
+    if (detailsCount >= 2) score += 25;
+    else if (detailsCount === 1) score += 15;
+
+    if (formData.summary.length > 5) score += 25;
+
+    return Math.min(score, 100);
+  };
+
+  const progress = calculateProgress();
 
   const renderConditionalBlocks = () => {
     switch (clientType) {
@@ -1423,19 +1440,16 @@ const VisitForm = ({ onBack, onSuccess, profile }: { onBack: () => void, onSucce
               <p className="text-xs text-slate-500 dark:text-slate-400">Registre os detalhes da sua visita</p>
             </div>
           </div>
-          <button className="p-2 text-slate-500">
-            <MoreVertical size={20} />
-          </button>
         </div>
         <div className="px-4 pb-4">
           <div className="flex justify-between items-center mb-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Progresso do Formulário</span>
             <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-              {clientType ? '50%' : '25%'} Completo
+              {progress}% Completo
             </span>
           </div>
           <div className="h-1.5 w-full bg-slate-200 dark:bg-border-dark rounded-full overflow-hidden">
-            <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: clientType ? '50%' : '25%' }}></div>
+            <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
           </div>
         </div>
       </header>
@@ -1510,7 +1524,7 @@ const VisitForm = ({ onBack, onSuccess, profile }: { onBack: () => void, onSucce
                   type="button"
                   onClick={() => {
                     setClientType(t.id as ClientType);
-                    setFormData(prev => ({ ...prev, details: {} })); // Clear details on type change
+                    setFormData(prev => ({ ...prev, details: {} }));
                   }}
                   className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${clientType === t.id ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white dark:bg-surface-dark text-slate-500 dark:text-slate-100 border-slate-200 dark:border-border-dark hover:border-primary'
                     }`}
@@ -1522,105 +1536,108 @@ const VisitForm = ({ onBack, onSuccess, profile }: { onBack: () => void, onSucce
           </div>
         </section>
 
-        <hr className="border-slate-200 dark:border-border-dark" />
-
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="flex items-center justify-center size-6 rounded-full bg-slate-200 dark:bg-border-dark text-[10px] font-bold text-slate-500">2</span>
-            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Detalhes Específicos</h2>
-          </div>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={clientType}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {renderConditionalBlocks()}
-            </motion.div>
-          </AnimatePresence>
-        </section>
-
-        <hr className="border-slate-200 dark:border-border-dark" />
-
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="flex items-center justify-center size-6 rounded-full bg-slate-200 dark:bg-border-dark text-[10px] font-bold text-slate-500">3</span>
-            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Resultado da Visita</h2>
-          </div>
-          <div className="flex flex-col gap-3">
-            <label className="text-xs font-medium text-slate-500 ml-1">Tipo de Visita</label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'PROSPECCAO', label: 'Prospecção', icon: <Search size={14} /> },
-                { id: 'RELACIONAMENTO', label: 'Relacionamento', icon: <Users size={14} /> },
-                { id: 'NEGOCIACAO', label: 'Negociação', icon: <TrendingUp size={14} /> },
-                { id: 'POS_VENDA', label: 'Pós-venda', icon: <Settings size={14} /> }
-              ].map(v => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, type: v.id as VisitType })}
-                  className={`px-3 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border transition-all ${formData.type === v.id ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white dark:bg-surface-dark text-slate-500 dark:text-slate-400 border-slate-200 dark:border-border-dark'
-                    }`}
+        {clientType && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <hr className="border-slate-200 dark:border-border-dark" />
+            <section className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="flex items-center justify-center size-6 rounded-full bg-slate-200 dark:bg-border-dark text-[10px] font-bold text-slate-500">2</span>
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Detalhes Específicos</h2>
+              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={clientType}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  {v.icon} {v.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 pt-2">
-            <label className="text-xs font-medium text-slate-500 ml-1">Objetivo da Visita</label>
-            <div className="flex flex-col gap-2">
-              {[
-                { id: 'ALCANCADO', label: 'Alcançado', icon: <CheckCircle2 size={18} className="text-green-500" /> },
-                { id: 'PARCIAL', label: 'Parcial', icon: <Clock size={18} className="text-amber-500" /> },
-                { id: 'NAO_ALCANCADO', label: 'Não alcançado', icon: <XCircle size={18} className="text-red-500" /> }
-              ].map(r => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, result: r.id as VisitResult })}
-                  className={`flex items-center justify-between p-3 rounded-lg border transition-all ${formData.result === r.id ? 'border-2 border-primary bg-primary/5' : 'border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {r.icon}
-                    <span className={`text-sm ${formData.result === r.id ? 'font-semibold' : ''}`}>{r.label}</span>
-                  </div>
-                  <div className={`size-5 rounded-full border-2 flex items-center justify-center ${formData.result === r.id ? 'bg-primary border-primary' : 'border-slate-300 dark:border-slate-700'
-                    }`}>
-                    {formData.result === r.id && <div className="size-2 bg-white rounded-full"></div>}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
+                  {renderConditionalBlocks()}
+                </motion.div>
+              </AnimatePresence>
+            </section>
 
-        <hr className="border-slate-200 dark:border-border-dark" />
+            <hr className="border-slate-200 dark:border-border-dark" />
 
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="flex items-center justify-center size-6 rounded-full bg-slate-200 dark:bg-border-dark text-[10px] font-bold text-slate-500">4</span>
-            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Observações</h2>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center ml-1">
-              <label className="text-xs font-medium text-slate-500">Resumo Objetivo *</label>
-              <span className="text-[10px] font-mono text-slate-400">{formData.summary.length}/300</span>
-            </div>
-            <textarea
-              className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none outline-none"
-              placeholder="Descreva os principais pontos..."
-              rows={4}
-              maxLength={300}
-              value={formData.summary}
-              onChange={e => setFormData({ ...formData, summary: e.target.value })}
-            />
-          </div>
-        </section>
+            <section className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="flex items-center justify-center size-6 rounded-full bg-slate-200 dark:bg-border-dark text-[10px] font-bold text-slate-500">3</span>
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Resultado da Visita</h2>
+              </div>
+              <div className="flex flex-col gap-3">
+                <label className="text-xs font-medium text-slate-500 ml-1">Tipo de Visita</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'PROSPECCAO', label: 'Prospecção', icon: <Search size={14} /> },
+                    { id: 'RELACIONAMENTO', label: 'Relacionamento', icon: <Users size={14} /> },
+                    { id: 'NEGOCIACAO', label: 'Negociação', icon: <TrendingUp size={14} /> },
+                    { id: 'POS_VENDA', label: 'Pós-venda', icon: <Settings size={14} /> }
+                  ].map(v => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, type: v.id as VisitType })}
+                      className={`px-3 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border transition-all ${formData.type === v.id ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white dark:bg-surface-dark text-slate-500 dark:text-slate-400 border-slate-200 dark:border-border-dark'
+                        }`}
+                    >
+                      {v.icon} {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 pt-2">
+                <label className="text-xs font-medium text-slate-500 ml-1">Objetivo da Visita</label>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { id: 'ALCANCADO', label: 'Alcançado', icon: <CheckCircle2 size={18} className="text-green-500" /> },
+                    { id: 'PARCIAL', label: 'Parcial', icon: <Clock size={18} className="text-amber-500" /> },
+                    { id: 'NAO_ALCANCADO', label: 'Não alcançado', icon: <XCircle size={18} className="text-red-500" /> }
+                  ].map(r => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, result: r.id as VisitResult })}
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-all ${formData.result === r.id ? 'border-2 border-primary bg-primary/5' : 'border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark'
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {r.icon}
+                        <span className={`text-sm ${formData.result === r.id ? 'font-semibold' : ''}`}>{r.label}</span>
+                      </div>
+                      <div className={`size-5 rounded-full border-2 flex items-center justify-center ${formData.result === r.id ? 'bg-primary border-primary' : 'border-slate-300 dark:border-slate-700'
+                        }`}>
+                        {formData.result === r.id && <div className="size-2 bg-white rounded-full"></div>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <hr className="border-slate-200 dark:border-border-dark" />
+
+            <section className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="flex items-center justify-center size-6 rounded-full bg-slate-200 dark:bg-border-dark text-[10px] font-bold text-slate-500">4</span>
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Observações</h2>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-xs font-medium text-slate-500">Resumo Objetivo *</label>
+                  <span className="text-[10px] font-mono text-slate-400">{formData.summary.length}/300</span>
+                </div>
+                <textarea
+                  className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none outline-none"
+                  placeholder="Descreva os principais pontos..."
+                  rows={4}
+                  maxLength={300}
+                  value={formData.summary}
+                  onChange={e => setFormData({ ...formData, summary: e.target.value })}
+                />
+              </div>
+            </section>
+          </motion.div>
+        )}
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 max-w-2xl mx-auto z-40 p-4 bg-gradient-to-t from-background-light dark:from-background-dark via-background-light dark:via-background-dark to-transparent">

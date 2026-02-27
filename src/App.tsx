@@ -958,7 +958,7 @@ const VisitsList = ({ profile, onNewVisit, onSelectVisit }: { profile: User | nu
             {sortByDateDesc ? 'Mais recentes' : 'Mais antigas'}
           </button>
         </div>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+        <div className="flex flex-wrap gap-2 pb-2 mr-[-8px]">
           {/* Assessor Filter Toggle */}
           <div className="flex items-center gap-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-full px-2 py-1">
             <UserIcon size={14} className="ml-1 text-slate-400" />
@@ -1924,7 +1924,7 @@ const UserManagement = () => {
       </div>
 
       {/* Filters Chips */}
-      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+      <div className="flex flex-wrap gap-2 pb-2">
         {['Todos', 'Admin', 'Gestor', 'Vendedor'].map((f) => (
           <button
             key={f}
@@ -1958,7 +1958,7 @@ const UserManagement = () => {
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{user.email}</p>
                 </div>
               </div>
-              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${user.role === 'ADMIN' ? 'bg-primary/10 text-primary border-primary/20' :
+              <span className={`shrink-0 ml-2 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${user.role === 'ADMIN' ? 'bg-primary/10 text-primary border-primary/20' :
                 'bg-slate-100 dark:bg-border-dark text-slate-500 dark:text-slate-400 border-slate-200 dark:border-border-dark'
                 }`}>
                 {user.role}
@@ -2332,13 +2332,13 @@ const UserProfile = ({ profile, onUpdate, theme, onToggleTheme }: { profile: Use
       </div>
 
       {/* Avatar Section */}
-      <div className="flex flex-col items-center gap-4 py-4">
+      <div className="flex flex-col items-center gap-2 lg:gap-4 py-2 lg:py-4">
         <div className="relative">
-          <div className="size-28 rounded-full border-4 border-white dark:border-background-dark shadow-xl overflow-hidden bg-slate-100 dark:bg-surface-dark flex items-center justify-center">
+          <div className="size-20 lg:size-28 rounded-full border-4 border-white dark:border-background-dark shadow-xl overflow-hidden bg-slate-100 dark:bg-surface-dark flex items-center justify-center">
             {avatar ? (
               <img src={avatar} alt="Avatar" className="size-full object-cover" />
             ) : (
-              <UserIcon size={48} className="text-slate-400" />
+              <UserIcon size={24} className="text-slate-400 lg:size-[48]" />
             )}
           </div>
           <label className="absolute bottom-1 right-1 p-2.5 bg-primary text-white rounded-full shadow-lg hover:scale-110 cursor-pointer transition-transform border-4 border-white dark:border-background-dark">
@@ -2347,7 +2347,7 @@ const UserProfile = ({ profile, onUpdate, theme, onToggleTheme }: { profile: Use
           </label>
         </div>
         <div className="text-center">
-          <h2 className="font-black text-2xl tracking-tight text-slate-900 dark:text-white">{profile.name}</h2>
+          <h2 className="font-black text-xl lg:text-2xl tracking-tight text-slate-900 dark:text-white">{profile.name}</h2>
           <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
             {profile.role}
           </span>
